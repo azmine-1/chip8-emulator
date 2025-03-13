@@ -7,7 +7,8 @@ Chip8::Chip8()
 }
 const unsigned int FONTSET_SIZE = 80;
 const unsigned int FONTSET_START_ADDRESS = 0x50;
-
+std::default_random_engine randGen;
+	std::uniform_int_distribution<uint8_t> randByte;
 uint8_t fontset[FONTSET_SIZE] =
 {
 	0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
