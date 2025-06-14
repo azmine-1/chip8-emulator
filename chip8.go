@@ -1,6 +1,6 @@
 package main
 
-type chip8 struct {
+type Chip8 struct {
 	memory     [4096]byte
 	V          [16]byte
 	I          uint16
@@ -12,4 +12,11 @@ type chip8 struct {
 	sp         uint16
 	key        [16]byte
 	drawFlag   bool
+}
+
+func (chip *Chip8) initialize() {
+	chip.pc = 0x200
+	chip.I = 0
+	chip.sp = 0
+	chip.drawFlag = false
 }
