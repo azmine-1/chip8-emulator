@@ -1,5 +1,7 @@
 package main
 
+import "os"
+
 type Chip8 struct {
 	memory     [4096]byte
 	V          [16]byte
@@ -19,4 +21,21 @@ func (chip *Chip8) initialize() {
 	chip.I = 0
 	chip.sp = 0
 	chip.drawFlag = false
+}
+
+func (chip *Chip8) loadROM(filename string) error {
+	data, err := os.ReadFile(filename)
+
+	if err != nil {
+		return err
+	}
+	copy(chip.memory[0x200:], data)
+	return nil
+}
+
+func (chip *Chip8) EmulateCycle() {
+	opcode := uint16(chip.memory[chip.pc])<<8 | uint16(chip.memory[chip.pc+1])
+	chip.executeOpcode(opcode)
+	chip.updateTimer()
+
 }
