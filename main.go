@@ -1,8 +1,8 @@
 package main
 
 import (
-	"chip8"
 	"time"
+	"github.com/veandco/go-sdl2/sdl"
 )
 
 func main() {

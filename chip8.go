@@ -1,41 +1,36 @@
 package main
 
-import "os"
+import (
+	"fmt"
+	"os"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"image/color"
+)
 
-type Chip8 struct {
-	memory     [4096]byte
-	V          [16]byte
-	I          uint16
-	pc         uint16
-	gfx        [64 * 32]byte
-	delayTimer byte
-	soundTimer byte
-	stack      [16]uint16
-	sp         uint16
-	key        [16]byte
-	drawFlag   bool
-}
-
-func (chip *Chip8) initialize() {
-	chip.pc = 0x200
-	chip.I = 0
-	chip.sp = 0
-	chip.drawFlag = false
-}
-
-func (chip *Chip8) loadROM(filename string) error {
-	data, err := os.ReadFile(filename)
-
-	if err != nil {
-		return err
+func main(){
+	fmt.Println("works")
+	os.Getenv("HOME")
+	ebiten.SetWindowSize(640,480)
+	ebiten.SetWindowTitle("Chip8-emulator")
+	if err := ebiten.RunGame(&Game{}); err != nil {
+		panic(err)
 	}
-	copy(chip.memory[0x200:], data)
-	return nil
 }
 
-func (chip *Chip8) EmulateCycle() {
-	opcode := uint16(chip.memory[chip.pc])<<8 | uint16(chip.memory[chip.pc+1])
-	chip.executeOpcode(opcode)
-	chip.updateTimer()
+type Game struct{}
 
+func(g *Game) Update() error {
+	return nil;
 }
+
+func(g *Game) Draw(screen *ebiten.Image){
+	screen.Fill(color.RGBA{0, 0, 255,255})
+	ebitenutil.DebugPrint(screen, "Chip8-emulator")
+}
+
+func(g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int){
+	return 320, 240
+}
+
+
