@@ -263,19 +263,19 @@ func start_timers() {
 }
 
 func loadTestProgram(m *Memory){
-	// Instructions - Display IBM logo
+	// Instructions - Display centered, larger IBM logo
 	testInstructions := []byte{
 		0x00, 0xE0,       // CLS
-		0x60, 0x00,       // LD V0, 0x00 (x position)
-		0x61, 0x00,       // LD V1, 0x00 (y position)
+		0x60, 0x10,       // LD V0, 16 (x position - more centered)
+		0x61, 0x0C,       // LD V1, 12 (y position - more centered)
 		0xA2, 0x2A,       // LD I, 0x22A (point to "I" sprite)
-		0xD0, 0x15,       // DRW V0, V1, 5 (draw 5-byte sprite)
-		0x70, 0x08,       // ADD V0, 0x08 (move x by 8 pixels)
-		0xA2, 0x2F,       // LD I, 0x22F (point to "B" sprite)
-		0xD0, 0x15,       // DRW V0, V1, 5 (draw 5-byte sprite)
-		0x70, 0x08,       // ADD V0, 0x08 (move x by 8 pixels)
-		0xA2, 0x34,       // LD I, 0x234 (point to "M" sprite)
-		0xD0, 0x15,       // DRW V0, V1, 5 (draw 5-byte sprite)
+		0xD0, 0x18,       // DRW V0, V1, 8 (draw 8-byte tall sprite)
+		0x70, 0x0A,       // ADD V0, 10 (move x by 10 pixels for spacing)
+		0xA2, 0x32,       // LD I, 0x232 (point to "B" sprite)
+		0xD0, 0x18,       // DRW V0, V1, 8 (draw 8-byte tall sprite)
+		0x70, 0x0A,       // ADD V0, 10 (move x by 10 pixels for spacing)
+		0xA2, 0x3A,       // LD I, 0x23A (point to "M" sprite)
+		0xD0, 0x18,       // DRW V0, V1, 8 (draw 8-byte tall sprite)
 		0x12, 0x1C,       // JP 0x21C (infinite loop to halt)
 	}
 
@@ -284,16 +284,16 @@ func loadTestProgram(m *Memory){
 		m.memory[0x200+i] = instruction
 	}
 
-	// Corrected sprite data for "IBM" - 5 bytes each, properly spaced
+	// Larger sprite data for "IBM" - 8 bytes each for better visibility
 	ibmSprites := []byte{
-		// "I" sprite (5 bytes)
-		0xF0, 0x60, 0x60, 0x60, 0xF0,
+		// "I" sprite (8 bytes tall)
+		0xFF, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0xFF,
 		
-		// "B" sprite (5 bytes) 
-		0xE0, 0x90, 0xE0, 0x90, 0xE0,
+		// "B" sprite (8 bytes tall)
+		0xFE, 0x33, 0x33, 0xFE, 0x33, 0x33, 0x33, 0xFE,
 		
-		// "M" sprite (5 bytes)
-		0x90, 0xF0, 0x90, 0x90, 0x90,
+		// "M" sprite (8 bytes tall)
+		0x83, 0xC7, 0xEF, 0xDB, 0x83, 0x83, 0x83, 0x83,
 	}
 
 	// Load sprites into memory starting at 0x22A
