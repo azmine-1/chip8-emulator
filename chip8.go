@@ -42,7 +42,44 @@ func fetch(m *Memory) uint16 {
 	m.PC += 2
 	return uint16(cur_instruction[0])<<8 | uint16(cur_instruction[1])
 }
-
+func decode(opcode uint16) {
+    if opcode == 0x00E0 {
+        fmt.Println("CLS")
+    } else if opcode == 0x00EE {
+        fmt.Println("RET")
+    } else if opcode&0xF000 == 0x1000 {
+        addr := opcode & 0x0FFF
+        fmt.Printf("JP 0x%03X\n", addr)
+    } else if opcode&0xF000 == 0x2000 {
+        addr := opcode & 0x0FFF
+        fmt.Printf("CALL 0x%03X\n", addr)
+    } else if opcode&0xF000 == 0x3000 {
+        x := (opcode & 0x0F00) >> 8
+        kk := opcode & 0x00FF
+        fmt.Printf("SE V%X, 0x%02X\n", x, kk)
+    } else if opcode&0xF000 == 0x6000 {
+        x := (opcode & 0x0F00) >> 8
+        kk := opcode & 0x00FF
+        fmt.Printf("LD V%X, 0x%02X\n", x, kk)
+    } else if opcode&0xF000 == 0x7000 {
+        x := (opcode & 0x0F00) >> 8
+        kk := opcode & 0x00FF
+        fmt.Printf("ADD V%X, 0x%02X\n", x, kk)
+    } else if opcode&0xF000 == 0xA000 {
+        addr := opcode & 0x0FFF
+        fmt.Printf("LD I, 0x%03X\n", addr)
+    } else if opcode&0xF000 == 0xD000 {
+        x := (opcode & 0x0F00) >> 8
+        y := (opcode & 0x00F0) >> 4
+        n := opcode & 0x000F
+        fmt.Printf("DRW V%X, V%X, %X\n", x, y, n)
+    } else {
+        fmt.Printf("Unknown opcode: 0x%04X\n", opcode)
+    }
+}
+func execute(opcode uint16){
+	decode(opcode);
+}
 
 var KeyPad = [4][4]string{
 	{"1", "2", "3", "C"},
@@ -72,54 +109,50 @@ var KeyMap_KeyBoard = map[string]byte{
 	"Z": 0xA, "X": 0x0, "C": 0xB, "V": 0xF,
 }
 
-func(s *Stack) push(value uint16){
-	if (len(s.data)) > 16{
-		return nil
+func(s *Stack) push(value uint16) error {
+	if len(s.data) >= 16 {
+		return fmt.Errorf("stack overflow")
 	}
-	else{
-		s.data = append(s.data, value)
-	}
+	s.data = append(s.data, value)
+	return nil
 }
-func(s *Stack) pop(value uint16, b bool){
-	if(len(s.data)  == 0){
-		return 0, false
+
+func(s *Stack) pop() (uint16, error) {
+	if len(s.data) == 0 {
+		return 0, fmt.Errorf("stack underflow")
 	}
 	value := s.data[len(s.data)-1]
 	s.data = s.data[:len(s.data)-1]
+	return value, nil
 }
+
 var delayTimer byte
 var soundTimer byte
+var ticker *time.Ticker
 
-func start_timers(){
-	ticker = time.NewTicker(time.second /60)
-	go func(){
-		for range ticker.C{
-			if(delayTimer > 0){
+func start_timers() {
+	ticker = time.NewTicker(time.Second / 60)
+	go func() {
+		for range ticker.C {
+			if delayTimer > 0 {
 				delayTimer--
 			}
-			if(soundTimer > 0){
-				soundTimer--;
+			if soundTimer > 0 {
+				soundTimer--
 			}
 		}
 	}()
 }
 
-
-
-func main(){
-	fmt.Println("works")
-	os.Getenv("HOME")
-	ebiten.SetWindowSize(640,480)
-	ebiten.SetWindowTitle("Chip8-emulator")
-	if err := ebiten.RunGame(&Game{}); err != nil {
-		panic(err)
-	}
+type Game struct {
+	memory *Memory
+	stack  *Stack
 }
 
-type Game struct{}
-
 func(g *Game) Update() error {
-	return nil;
+	opcode := fetch(g.memory)
+	execute(opcode)
+	return nil
 }
 
 func(g *Game) Draw(screen *ebiten.Image){
