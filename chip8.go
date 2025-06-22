@@ -62,32 +62,91 @@ func decode(opcode uint16, m *Memory, s *Stack) {
 	case opcode&0xF000 == 0x1000:
 		addr := opcode & 0x0FFF
 		m.PC = addr
+
 	case opcode&0xF000 == 0x2000:
 		addr := opcode & 0x0FFF
 		s.push(m.PC)
 		m.PC = addr
+
 	case opcode&0xF000 == 0x3000:
 		x := (opcode & 0x0F00) >> 8
 		kk := byte(opcode & 0x00FF)
 		if m.V[x] == kk {
 			m.PC += 2
 		}
+
+	case opcode&0xF000 == 0x4000:
+		x := (opcode & 0x0F00) >> 8
+		kk := byte(opcode & 0x00FF)
+		if m.V[x] != kk {
+			m.PC += 2
+		}
+
+	case opcode&0xF00F == 0x5000:
+		x := (opcode & 0x0F00) >> 8
+		y := (opcode & 0x00F0) >> 4
+		if m.V[x] == m.V[y] {
+			m.PC += 2
+		}
+
 	case opcode&0xF000 == 0x6000:
 		x := (opcode & 0x0F00) >> 8
 		kk := byte(opcode & 0x00FF)
 		m.V[x] = kk
+
 	case opcode&0xF000 == 0x7000:
 		x := (opcode & 0x0F00) >> 8
 		kk := byte(opcode & 0x00FF)
 		m.V[x] += kk
-	case opcode&0xF000 == 0xA000:
-		addr := opcode & 0x0FFF
-		m.I = addr
-	case opcode&0xF000 == 0xD000:
+
+	case opcode&0xF000 == 0x8000:
 		x := (opcode & 0x0F00) >> 8
 		y := (opcode & 0x00F0) >> 4
-		n := opcode & 0x000F
-		fmt.Printf("DRW V%X, V%X, %X\n", x, y, n)
+		switch opcode & 0x000F {
+		case 0x0:
+			m.V[x] = m.V[y]
+		case 0x1:
+			m.V[x] |= m.V[y]
+		case 0x2:
+			m.V[x] &= m.V[y]
+		case 0x3:
+			m.V[x] ^= m.V[y]
+		case 0x4:
+			sum := uint16(m.V[x]) + uint16(m.V[y])
+			m.V[0xF] = 0
+			if sum > 255 {
+				m.V[0xF] = 1
+			}
+			m.V[x] = byte(sum)
+		case 0x5:
+			m.V[0xF] = 0
+			if m.V[x] > m.V[y] {
+				m.V[0xF] = 1
+			}
+			m.V[x] -= m.V[y]
+		case 0x6:
+			m.V[0xF] = m.V[x] & 0x1
+			m.V[x] >>= 1
+		case 0x7:
+			m.V[0xF] = 0
+			if m.V[y] > m.V[x] {
+				m.V[0xF] = 1
+			}
+			m.V[x] = m.V[y] - m.V[x]
+		case 0xE:
+			m.V[0xF] = (m.V[x] & 0x80) >> 7
+			m.V[x] <<= 1
+		}
+
+	case opcode&0xF000 == 0xA000:
+		m.I = opcode & 0x0FFF
+
+	case opcode&0xF000 == 0xD000:
+		x := m.V[(opcode&0x0F00)>>8]
+		y := m.V[(opcode&0x00F0)>>4]
+		height := opcode & 0x000F
+		fmt.Printf("DRW at (%d, %d) height: %d\n", x, y, height)
+
 	default:
 		fmt.Printf("Unknown opcode: 0x%04X\n", opcode)
 	}
