@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"time"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"image/color"
+	"os"
+	"image"
 )
 var Font_data = []byte{0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
 	0x20, 0x60, 0x20, 0x20, 0x70, // 1
@@ -144,6 +145,63 @@ func start_timers() {
 	}()
 }
 
+// Load test program into memory
+func loadTestProgram(m *Memory){
+	// IBM Logo test program
+	testInstructions := []byte{
+		0x00, 0xE0, // CLS - Clear screen
+		0x60, 0x00, // LD V0, 0x00 - Load 0 into V0
+		0x61, 0x00, // LD V1, 0x00 - Load 0 into V1
+		0xA2, 0x2A, // LD I, 0x22A - Load address of sprite data into I
+		0xD0, 0x1F, // DRW V0, V1, 0xF - Draw 15-byte sprite at (V0, V1)
+		0x70, 0x08, // ADD V0, 0x08 - Add 8 to V0 (next sprite position)
+		0xA2, 0x3A, // LD I, 0x23A - Load next sprite data
+		0xD0, 0x1F, // DRW V0, V1, 0xF - Draw sprite
+		0x70, 0x08, // ADD V0, 0x08 - Add 8 to V0
+		0xA2, 0x4A, // LD I, 0x24A - Load next sprite data
+		0xD0, 0x1F, // DRW V0, V1, 0xF - Draw sprite
+		0x70, 0x08, // ADD V0, 0x08 - Add 8 to V0
+		0xA2, 0x5A, // LD I, 0x25A - Load next sprite data
+		0xD0, 0x1F, // DRW V0, V1, 0xF - Draw sprite
+		0x12, 0x20, // JP 0x220 - Jump back to start (infinite loop)
+	}
+	
+	// Load instructions starting at 0x200 (where CHIP-8 programs begin)
+	for i, instruction := range testInstructions {
+		m.memory[0x200+i] = instruction
+	}
+	
+	// Load IBM logo sprite data starting at 0x22A
+	ibmLogo := []byte{
+		0x3C, 0x7E, 0xFF, 0xFF, 0xFF, 0xFF, 0x7E, 0x3C, // I
+		0x00, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x00, // -
+		0x00, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x00, // -
+		0x00, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x00, // -
+		0x00, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x00, // -
+	}
+	
+	for i, spriteByte := range ibmLogo {
+		m.memory[0x22A+i] = spriteByte
+	}
+}
+
+func loadROM(m *Memory, filename string) error {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return fmt.Errorf("failed to read ROM file: %v", err)
+	}
+	
+	// Load ROM data starting at 0x20
+	for i, byte := range data {
+		if 0x200+i >= 4096 {
+			break 
+		}
+		m.memory[0x200+i] = byte
+	}
+	
+	return nil
+}
+
 type Game struct {
 	memory *Memory
 	stack  *Stack
@@ -151,13 +209,29 @@ type Game struct {
 
 func(g *Game) Update() error {
 	opcode := fetch(g.memory)
-	execute(opcode)
+	execute(opcode, g.memory, g.stack)
 	return nil
 }
 
 func(g *Game) Draw(screen *ebiten.Image){
-	screen.Fill(color.RGBA{0, 0, 255,255})
-	ebitenutil.DebugPrint(screen, "Chip8-emulator")
+	// Clear screen with black background
+	screen.Fill(color.RGBA{0, 0, 0, 255})
+	
+	// Draw the display grid
+	for x := 0; x < 64; x++ {
+		for y := 0; y < 32; y++ {
+			if display_grid[x][y] {
+				// Scale up the pixels (10x10 each)
+				rect := image.Rect(x*10, y*10, (x+1)*10, (y+1)*10)
+				ebitenutil.DrawRect(screen, float64(rect.Min.X), float64(rect.Min.Y), 
+					float64(rect.Dx()), float64(rect.Dy()), color.RGBA{255, 255, 255, 255})
+			}
+		}
+	}
+	
+	// Show debug info
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("PC: 0x%03X I: 0x%03X V0: 0x%02X V1: 0x%02X", 
+		g.memory.PC, I, V[0], V[1]))
 }
 
 func(g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int){
