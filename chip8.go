@@ -5,6 +5,7 @@ import (
 	"time"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"image/color"
 	"os"
 	"image"
@@ -178,19 +179,57 @@ func decode(opcode uint16, m *Memory, s *Stack) {
 		m.V[x] = byte(rand.Intn(256)) & kk
 	
 	case opcode&0xF000 == 0xE09E:
-		//x := (opcode&0xF000) >> 8
-		//key := m.V[x]
-		//if isKeyPressed(key){
-		//	m.PC += 2
-		//}
+		x := (opcode&0xF000) >> 8
+		key := m.V[x]
+		if isKeyPressed(key){
+			m.PC += 2
+		}
 	case opcode&0xF0FF == 0xE0A1:
-		//key := m.V[x]
-    	//if !isKeyPressed(key) {
-        //	m.PC += 2
-    	//}
+		x := (opcode & 0x0F00) >> 8
+		key := m.V[x]
+    	if !isKeyPressed(key) {
+        	m.PC += 2
+    	}
 	case opcode&0xF0FF == 0xF007:
 		x := (opcode & 0x0F00) >> 8
 		m.V[x] = delayTimer
+	case opcode&0xF0FF == 0xF00A:
+		x := (opcode&0x0F00) >> 8
+		key := getKeyPressed()
+		if key != 0xFF {
+			m.V[x] = key
+		} else {
+			m.PC -= 2
+		}
+	case opcode&0xF0FF == 0xF015:
+		x := (opcode & 0x0F00) >> 8
+		delayTimer = m.V[x]
+	case opcode&0xF0FF == 0xF018:
+		x := (opcode&0xF00) >> 8
+		soundTimer = m.V[x]
+	case opcode&0xF0FF == 0xF01E:
+		x := (opcode&0x0F00) >> 8
+		m.I += uint16(m.V[x])
+	case opcode&0xF0FF == 0xF029:
+		x := (opcode&0x0F00) >> 8
+		digit := m.V[x] & 0x0F 
+		m.I = 0x50 + uint16(digit)*5
+	case opcode&0xF0FF == 0xF033:
+		x := (opcode&0x0F00) >> 8
+		value := m.V[x]
+		m.memory[m.I] = value / 100
+		m.memory[m.I+1] = (value / 10) % 10
+		m.memory[m.I+2] = value % 10
+	case opcode&0xF0FF == 0xF055:
+		x := (opcode & 0x0F00) >> 8
+		for i := uint16(0); i <= x; i++ {
+			m.memory[m.I+i] = m.V[i]
+		}
+	case opcode&0xF0FF == 0xF065:
+		x := (opcode & 0x0F00) >> 8
+		for i := uint16(0); i <= x; i++ {
+			m.V[i] = m.memory[m.I+i]
+		}
  	default:
 		fmt.Printf("Unknown opcode: 0x%04X\n", opcode)
 	}
@@ -227,6 +266,52 @@ var KeyMap_KeyBoard = map[string]byte{
 	"Z": 0xA, "X": 0x0, "C": 0xB, "V": 0xF,
 }
 
+
+func isKeyPressed(chip8Key byte) bool {
+    for keyboardKey, mappedKey := range KeyMap_KeyBoard {
+        if mappedKey == chip8Key {
+            switch keyboardKey {
+            case "1": return ebiten.IsKeyPressed(ebiten.Key1)
+            case "2": return ebiten.IsKeyPressed(ebiten.Key2)
+            case "3": return ebiten.IsKeyPressed(ebiten.Key3)
+            case "4": return ebiten.IsKeyPressed(ebiten.Key4)
+            case "Q": return ebiten.IsKeyPressed(ebiten.KeyQ)
+            case "W": return ebiten.IsKeyPressed(ebiten.KeyW)
+            case "E": return ebiten.IsKeyPressed(ebiten.KeyE)
+            case "R": return ebiten.IsKeyPressed(ebiten.KeyR)
+            case "A": return ebiten.IsKeyPressed(ebiten.KeyA)
+            case "S": return ebiten.IsKeyPressed(ebiten.KeyS)
+            case "D": return ebiten.IsKeyPressed(ebiten.KeyD)
+            case "F": return ebiten.IsKeyPressed(ebiten.KeyF)
+            case "Z": return ebiten.IsKeyPressed(ebiten.KeyZ)
+            case "X": return ebiten.IsKeyPressed(ebiten.KeyX)
+            case "C": return ebiten.IsKeyPressed(ebiten.KeyC)
+            case "V": return ebiten.IsKeyPressed(ebiten.KeyV)
+            }
+        }
+    }
+    return false
+}
+
+
+func getKeyPressed() byte {
+    keyboardKeys := []struct{
+        key ebiten.Key
+        chip8Key byte
+    }{
+        {ebiten.Key1, 0x1}, {ebiten.Key2, 0x2}, {ebiten.Key3, 0x3}, {ebiten.Key4, 0xC},
+        {ebiten.KeyQ, 0x4}, {ebiten.KeyW, 0x5}, {ebiten.KeyE, 0x6}, {ebiten.KeyR, 0xD},
+        {ebiten.KeyA, 0x7}, {ebiten.KeyS, 0x8}, {ebiten.KeyD, 0x9}, {ebiten.KeyF, 0xE},
+        {ebiten.KeyZ, 0xA}, {ebiten.KeyX, 0x0}, {ebiten.KeyC, 0xB}, {ebiten.KeyV, 0xF},
+    }
+    
+    for _, keyMap := range keyboardKeys {
+        if inpututil.IsKeyJustPressed(keyMap.key) {
+            return keyMap.chip8Key
+        }
+    }
+    return 0xFF 
+}
 func(s *Stack) push(value uint16) error {
 	if len(s.data) >= 16 {
 		return fmt.Errorf("stack overflow")

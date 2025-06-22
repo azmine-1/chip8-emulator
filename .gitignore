@@ -1,0 +1,62 @@
+# CHIP-8 Emulator .gitignore
+
+# Games directory - exclude ROM files
+games/
+
+# Build artifacts
+chip8-emulator
+chip8-emulator.exe
+chip8
+chip8.exe
+*.exe
+
+# Go build artifacts
+*.o
+*.a
+*.so
+*.dll
+*.dylib
+
+# Go test files
+*.test
+*.out
+coverage.out
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Backup files
+*.bak
+*.backup
+
+# ROM files (in case they're in other directories)
+*.ch8
+*.rom
+*.bin
+
+# Debug files
+debug/
+*.debug 
