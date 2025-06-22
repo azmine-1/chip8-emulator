@@ -8,6 +8,7 @@ import (
 	"image/color"
 	"os"
 	"image"
+	"math/rand"
 )
 
 var Font_data = []byte{0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -143,7 +144,7 @@ func decode(opcode uint16, m *Memory, s *Stack) {
 
 	case opcode&0xF000 == 0xD000:
 		x := uint16(m.V[(opcode&0x0F00)>>8] % 64)
-		y := uint16(m.V[(opcode&0x00F0)>>4] % 64)
+		y := uint16(m.V[(opcode&0x00F0)>>4] % 32)
 		height := opcode & 0x000F
 		m.V[0xF] = 0
 		for row := uint16(0); row < height; row ++{
@@ -161,8 +162,36 @@ func decode(opcode uint16, m *Memory, s *Stack) {
 
 			}
 		}
-
-	default:
+	case opcode&0xF00F == 0x9000:
+		x := (opcode&0xF00F) >> 8
+		y := (opcode&0xF00F) >> 4
+		if m.V[x] != m.V[y]{
+			m.PC += 2
+		}
+	case opcode&0xF000 == 0xB000:
+		addr := opcode&0xF000
+		m.PC = addr + uint16(m.V[0])
+	
+	case opcode&0xF000 == 0xC000:
+		x := (opcode&0xF000) >> 8
+		kk := byte(opcode&0xF000)
+		m.V[x] = byte(rand.Intn(256)) & kk
+	
+	case opcode&0xF000 == 0xE09E:
+		//x := (opcode&0xF000) >> 8
+		//key := m.V[x]
+		//if isKeyPressed(key){
+		//	m.PC += 2
+		//}
+	case opcode&0xF0FF == 0xE0A1:
+		//key := m.V[x]
+    	//if !isKeyPressed(key) {
+        //	m.PC += 2
+    	//}
+	case opcode&0xF0FF == 0xF007:
+		x := (opcode & 0x0F00) >> 8
+		m.V[x] = delayTimer
+ 	default:
 		fmt.Printf("Unknown opcode: 0x%04X\n", opcode)
 	}
 }
@@ -251,7 +280,7 @@ func loadTestProgram(m *Memory){
 		0x70, 0x08,       // ADD V0, 0x08
 		0xA2, 0x57,       // LD I, 0x257
 		0xD0, 0x1F,       // DRW V0, V1, 0xF
-		0x12, 0x20,       // JP 0x220
+		0x12, 0x20,       // JP 0x200
 	}
 
 	// Load program into memory starting at 0x200
@@ -314,6 +343,7 @@ type Game struct {
 func(g *Game) Update() error {
 	opcode := fetch(g.memory)
 	execute(opcode, g.memory, g.stack)
+	time.Sleep(1 * time.Second)
 	return nil
 }
 
