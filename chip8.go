@@ -26,8 +26,21 @@ const Font_data = []byte{0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
 	0xF0, 0x80, 0xF0, 0x80, 0x80} // F
 
 var display_grid [64][32]bool
+
 type Stack struct {
 	data []uint16
+}
+type Memory struct{
+	memory []byte 
+	PC uint16
+}
+func fetch(m *Memory) uint16 {
+	var cur_instruction [2]byte
+	for i := 0; i < 2; i++ {
+		cur_instruction[i] = m.memory[m.PC + uint16(i)]
+	}
+	m.PC += 2
+	return uint16(cur_instruction[0])<<8 | uint16(cur_instruction[1])
 }
 
 
@@ -38,12 +51,25 @@ var KeyPad = [4][4]string{
 	{"A", "0", "B", "F"},
 }
 
+var KeyPad_KeyBoard = [4][4]string{
+	{"1", "2", "3", "4"},
+	{"Q" ,"W", "E", "R"},
+	{"A", "S", "D", "F"},
+	{"Z", "X", "C", "V"},
+}
+
 
 var KeyMap = map[string]byte{
 	"1": 0x1, "2": 0x2, "3": 0x3, "C": 0xC,
 	"4": 0x4, "5": 0x5, "6": 0x6, "D": 0xD,
 	"7": 0x7, "8": 0x8, "9": 0x9, "E": 0xE,
 	"A": 0xA, "0": 0x0, "B": 0xB, "F": 0xF,
+}
+var KeyMap_KeyBoard = map[string]byte{
+	"1": 0x1, "2": 0x2, "3": 0x3, "4": 0xC,
+	"Q": 0x4, "W": 0x5, "E": 0x6, "R": 0xD,
+	"A": 0x7, "S": 0x8, "D": 0x9, "F": 0xE,
+	"Z": 0xA, "X": 0x0, "C": 0xB, "V": 0xF,
 }
 
 func(s *Stack) push(value uint16){
@@ -77,6 +103,8 @@ func start_timers(){
 		}
 	}()
 }
+
+
 
 func main(){
 	fmt.Println("works")
