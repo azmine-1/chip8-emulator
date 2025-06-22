@@ -9,6 +9,7 @@ import (
 	"os"
 	"image"
 )
+
 var Font_data = []byte{0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
 	0x20, 0x60, 0x20, 0x20, 0x70, // 1
 	0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
@@ -31,9 +32,11 @@ var display_grid [64][32]bool
 type Stack struct {
 	data []uint16
 }
-type Memory struct{
-	memory []byte 
-	PC uint16
+type Memory struct {
+	memory []byte
+	PC     uint16
+	V      [16]byte 
+	I      uint16   
 }
 func fetch(m *Memory) uint16 {
 	var cur_instruction [2]byte
@@ -43,43 +46,54 @@ func fetch(m *Memory) uint16 {
 	m.PC += 2
 	return uint16(cur_instruction[0])<<8 | uint16(cur_instruction[1])
 }
-func decode(opcode uint16) {
-    if opcode == 0x00E0 {
-        fmt.Println("CLS")
-    } else if opcode == 0x00EE {
-        fmt.Println("RET")
-    } else if opcode&0xF000 == 0x1000 {
-        addr := opcode & 0x0FFF
-        fmt.Printf("JP 0x%03X\n", addr)
-    } else if opcode&0xF000 == 0x2000 {
-        addr := opcode & 0x0FFF
-        fmt.Printf("CALL 0x%03X\n", addr)
-    } else if opcode&0xF000 == 0x3000 {
-        x := (opcode & 0x0F00) >> 8
-        kk := opcode & 0x00FF
-        fmt.Printf("SE V%X, 0x%02X\n", x, kk)
-    } else if opcode&0xF000 == 0x6000 {
-        x := (opcode & 0x0F00) >> 8
-        kk := opcode & 0x00FF
-        fmt.Printf("LD V%X, 0x%02X\n", x, kk)
-    } else if opcode&0xF000 == 0x7000 {
-        x := (opcode & 0x0F00) >> 8
-        kk := opcode & 0x00FF
-        fmt.Printf("ADD V%X, 0x%02X\n", x, kk)
-    } else if opcode&0xF000 == 0xA000 {
-        addr := opcode & 0x0FFF
-        fmt.Printf("LD I, 0x%03X\n", addr)
-    } else if opcode&0xF000 == 0xD000 {
-        x := (opcode & 0x0F00) >> 8
-        y := (opcode & 0x00F0) >> 4
-        n := opcode & 0x000F
-        fmt.Printf("DRW V%X, V%X, %X\n", x, y, n)
-    } else {
-        fmt.Printf("Unknown opcode: 0x%04X\n", opcode)
-    }
+func decode(opcode uint16, m *Memory, s *Stack) {
+	switch {
+	case opcode == 0x00E0:
+		for x := range display_grid {
+			for y := range display_grid[x] {
+				display_grid[x][y] = false
+			}
+		}
+	case opcode == 0x00EE:
+		retAddr, err := s.pop()
+		if err == nil {
+			m.PC = retAddr
+		}
+	case opcode&0xF000 == 0x1000:
+		addr := opcode & 0x0FFF
+		m.PC = addr
+	case opcode&0xF000 == 0x2000:
+		addr := opcode & 0x0FFF
+		s.push(m.PC)
+		m.PC = addr
+	case opcode&0xF000 == 0x3000:
+		x := (opcode & 0x0F00) >> 8
+		kk := byte(opcode & 0x00FF)
+		if m.V[x] == kk {
+			m.PC += 2
+		}
+	case opcode&0xF000 == 0x6000:
+		x := (opcode & 0x0F00) >> 8
+		kk := byte(opcode & 0x00FF)
+		m.V[x] = kk
+	case opcode&0xF000 == 0x7000:
+		x := (opcode & 0x0F00) >> 8
+		kk := byte(opcode & 0x00FF)
+		m.V[x] += kk
+	case opcode&0xF000 == 0xA000:
+		addr := opcode & 0x0FFF
+		m.I = addr
+	case opcode&0xF000 == 0xD000:
+		x := (opcode & 0x0F00) >> 8
+		y := (opcode & 0x00F0) >> 4
+		n := opcode & 0x000F
+		fmt.Printf("DRW V%X, V%X, %X\n", x, y, n)
+	default:
+		fmt.Printf("Unknown opcode: 0x%04X\n", opcode)
+	}
 }
-func execute(opcode uint16){
-	decode(opcode);
+func execute(opcode uint16, m *Memory, s *Stack) {
+	decode(opcode, m, s)
 }
 
 var KeyPad = [4][4]string{
@@ -214,14 +228,12 @@ func(g *Game) Update() error {
 }
 
 func(g *Game) Draw(screen *ebiten.Image){
-	// Clear screen with black background
+
 	screen.Fill(color.RGBA{0, 0, 0, 255})
 	
-	// Draw the display grid
 	for x := 0; x < 64; x++ {
 		for y := 0; y < 32; y++ {
 			if display_grid[x][y] {
-				// Scale up the pixels (10x10 each)
 				rect := image.Rect(x*10, y*10, (x+1)*10, (y+1)*10)
 				ebitenutil.DrawRect(screen, float64(rect.Min.X), float64(rect.Min.Y), 
 					float64(rect.Dx()), float64(rect.Dy()), color.RGBA{255, 255, 255, 255})
@@ -229,9 +241,9 @@ func(g *Game) Draw(screen *ebiten.Image){
 		}
 	}
 	
-	// Show debug info
+	
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("PC: 0x%03X I: 0x%03X V0: 0x%02X V1: 0x%02X", 
-		g.memory.PC, I, V[0], V[1]))
+		g.memory.PC, g.memory.I, g.memory.V[0], g.memory.V[1]))
 }
 
 func(g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int){
