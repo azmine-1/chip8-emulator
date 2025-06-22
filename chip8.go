@@ -163,18 +163,18 @@ func decode(opcode uint16, m *Memory, s *Stack) {
 			}
 		}
 	case opcode&0xF00F == 0x9000:
-		x := (opcode&0xF00F) >> 8
-		y := (opcode&0xF00F) >> 4
+		x := (opcode&0x0F00) >> 8
+		y := (opcode&0x00F0) >> 4
 		if m.V[x] != m.V[y]{
 			m.PC += 2
 		}
 	case opcode&0xF000 == 0xB000:
-		addr := opcode&0xF000
+		addr := opcode&0x0FFF
 		m.PC = addr + uint16(m.V[0])
 	
 	case opcode&0xF000 == 0xC000:
-		x := (opcode&0xF000) >> 8
-		kk := byte(opcode&0xF000)
+		x := (opcode&0x0F00) >> 8
+		kk := byte(opcode&0x00FF)
 		m.V[x] = byte(rand.Intn(256)) & kk
 	
 	case opcode&0xF000 == 0xE09E:
@@ -262,25 +262,21 @@ func start_timers() {
 	}()
 }
 
-// Load test program into memory
 func loadTestProgram(m *Memory){
-	// Instructions
+	// Instructions - Display IBM logo
 	testInstructions := []byte{
 		0x00, 0xE0,       // CLS
-		0x60, 0x00,       // LD V0, 0x00
-		0x61, 0x00,       // LD V1, 0x00
-		0xA2, 0x2A,       // LD I, 0x22A
-		0xD0, 0x1F,       // DRW V0, V1, 0xF
-		0x70, 0x08,       // ADD V0, 0x08
-		0xA2, 0x39,       // LD I, 0x239
-		0xD0, 0x1F,       // DRW V0, V1, 0xF
-		0x70, 0x08,       // ADD V0, 0x08
-		0xA2, 0x48,       // LD I, 0x248
-		0xD0, 0x1F,       // DRW V0, V1, 0xF
-		0x70, 0x08,       // ADD V0, 0x08
-		0xA2, 0x57,       // LD I, 0x257
-		0xD0, 0x1F,       // DRW V0, V1, 0xF
-		0x12, 0x20,       // JP 0x200
+		0x60, 0x00,       // LD V0, 0x00 (x position)
+		0x61, 0x00,       // LD V1, 0x00 (y position)
+		0xA2, 0x2A,       // LD I, 0x22A (point to "I" sprite)
+		0xD0, 0x15,       // DRW V0, V1, 5 (draw 5-byte sprite)
+		0x70, 0x08,       // ADD V0, 0x08 (move x by 8 pixels)
+		0xA2, 0x2F,       // LD I, 0x22F (point to "B" sprite)
+		0xD0, 0x15,       // DRW V0, V1, 5 (draw 5-byte sprite)
+		0x70, 0x08,       // ADD V0, 0x08 (move x by 8 pixels)
+		0xA2, 0x34,       // LD I, 0x234 (point to "M" sprite)
+		0xD0, 0x15,       // DRW V0, V1, 5 (draw 5-byte sprite)
+		0x12, 0x1C,       // JP 0x21C (infinite loop to halt)
 	}
 
 	// Load program into memory starting at 0x200
@@ -288,31 +284,20 @@ func loadTestProgram(m *Memory){
 		m.memory[0x200+i] = instruction
 	}
 
-	// Sprite data for letters "I", "B", "M" and a stylized block
-	ibmLogo := []byte{
-		// Sprite 1 - "I"
-		0xFF, 0x18, 0x18, 0x18, 0x18,
-		0x18, 0x18, 0x18, 0x18, 0x18,
-		0x18, 0x18, 0x18, 0x18, 0xFF,
-
-		// Sprite 2 - "B"
-		0xFE, 0x92, 0x92, 0x92, 0xFE,
-		0x92, 0x92, 0x92, 0x92, 0xFE,
-		0x92, 0x92, 0x92, 0x92, 0xFE,
-
-		// Sprite 3 - "M"
-		0x81, 0xC3, 0xA5, 0xA5, 0x99,
-		0x99, 0x81, 0x81, 0x81, 0x81,
-		0x81, 0x81, 0x81, 0x81, 0x81,
-
-		// Sprite 4 - Solid bar (or spacing block)
-		0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-		0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-		0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+	// Corrected sprite data for "IBM" - 5 bytes each, properly spaced
+	ibmSprites := []byte{
+		// "I" sprite (5 bytes)
+		0xF0, 0x60, 0x60, 0x60, 0xF0,
+		
+		// "B" sprite (5 bytes) 
+		0xE0, 0x90, 0xE0, 0x90, 0xE0,
+		
+		// "M" sprite (5 bytes)
+		0x90, 0xF0, 0x90, 0x90, 0x90,
 	}
 
-	// Load into memory starting at 0x22A
-	for i, spriteByte := range ibmLogo {
+	// Load sprites into memory starting at 0x22A
+	for i, spriteByte := range ibmSprites {
 		m.memory[0x22A+i] = spriteByte
 	}
 }
@@ -338,12 +323,16 @@ func loadROM(m *Memory, filename string) error {
 type Game struct {
 	memory *Memory
 	stack  *Stack
+	instructionCounter int 
 }
 
 func(g *Game) Update() error {
-	opcode := fetch(g.memory)
-	execute(opcode, g.memory, g.stack)
-	time.Sleep(1 * time.Second)
+	g.instructionCounter++
+	if g.instructionCounter >= 4 {
+		g.instructionCounter = 0
+		opcode := fetch(g.memory)
+		execute(opcode, g.memory, g.stack)
+	}
 	return nil
 }
 

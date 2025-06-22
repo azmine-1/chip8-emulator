@@ -15,7 +15,7 @@ func main() {
 	}
 	
 	for i, fontByte := range Font_data {
-		memory.memory[i] = fontByte
+		memory.memory[0x50 + i] = fontByte
 	}
 	
 	stack := &Stack{
@@ -40,7 +40,7 @@ func main() {
 	
 	start_timers()
 	
-	ebiten.SetWindowSize(640, 480)
+	ebiten.SetWindowSize(640, 320)
 	ebiten.SetWindowTitle("CHIP-8 Emulator")
 	
 	game := &Game{
