@@ -393,6 +393,44 @@ func loadROM(m *Memory, filename string) error {
 	return nil
 }
 
+func drawRoundedRect(screen *ebiten.Image, x, y, width, height, radius float64, clr color.RGBA) {
+	for py := y; py < y+height; py++ {
+		for px := x; px < x+width; px++ {
+			inRect := true
+			
+			if px < x+radius && py < y+radius {
+				dx := x + radius - px
+				dy := y + radius - py
+				if dx*dx + dy*dy > radius*radius {
+					inRect = false
+				}
+			} else if px > x+width-radius && py < y+radius {
+				dx := px - (x + width - radius)
+				dy := y + radius - py
+				if dx*dx + dy*dy > radius*radius {
+					inRect = false
+				}
+			} else if px < x+radius && py > y+height-radius {
+				dx := x + radius - px
+				dy := py - (y + height - radius)
+				if dx*dx + dy*dy > radius*radius {
+					inRect = false
+				}
+			} else if px > x+width-radius && py > y+height-radius {
+				dx := px - (x + width - radius)
+				dy := py - (y + height - radius)
+				if dx*dx + dy*dy > radius*radius {
+					inRect = false
+				}
+			}
+			
+			if inRect {
+				screen.Set(int(px), int(py), clr)
+			}
+		}
+	}
+}
+
 func drawKeyboard(screen *ebiten.Image) {
 	startX := 650
 	startY := 350
