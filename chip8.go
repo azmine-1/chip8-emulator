@@ -8,8 +8,8 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"image/color"
 	"os"
+	"image"
 	"math/rand"
-	"math"
 )
 
 var Font_data = []byte{0xF0, 0x90, 0x90, 0x90, 0xF0,
@@ -393,182 +393,31 @@ func loadROM(m *Memory, filename string) error {
 	return nil
 }
 
-func drawRoundedRect(screen *ebiten.Image, x, y, width, height, radius float64, clr color.RGBA) {
-	for py := y; py < y+height; py++ {
-		for px := x; px < x+width; px++ {
-			inRect := true
-			
-			if px < x+radius && py < y+radius {
-				dx := x + radius - px
-				dy := y + radius - py
-				if dx*dx + dy*dy > radius*radius {
-					inRect = false
-				}
-			} else if px > x+width-radius && py < y+radius {
-				dx := px - (x + width - radius)
-				dy := y + radius - py
-				if dx*dx + dy*dy > radius*radius {
-					inRect = false
-				}
-			} else if px < x+radius && py > y+height-radius {
-				dx := x + radius - px
-				dy := py - (y + height - radius)
-				if dx*dx + dy*dy > radius*radius {
-					inRect = false
-				}
-			} else if px > x+width-radius && py > y+height-radius {
-				dx := px - (x + width - radius)
-				dy := py - (y + height - radius)
-				if dx*dx + dy*dy > radius*radius {
-					inRect = false
-				}
-			}
-			
-			if inRect {
-				screen.Set(int(px), int(py), clr)
-			}
-		}
-	}
-}
-
-func drawGradientRect(screen *ebiten.Image, x, y, width, height float64, topColor, bottomColor color.RGBA) {
-	for py := y; py < y+height; py++ {
-		t := (py - y) / height
-		r := float64(topColor.R)*(1-t) + float64(bottomColor.R)*t
-		g := float64(topColor.G)*(1-t) + float64(bottomColor.G)*t
-		b := float64(topColor.B)*(1-t) + float64(bottomColor.B)*t
-		a := float64(topColor.A)*(1-t) + float64(bottomColor.A)*t
-		
-		lineColor := color.RGBA{uint8(r), uint8(g), uint8(b), uint8(a)}
-		ebitenutil.DrawRect(screen, x, py, width, 1, lineColor)
-	}
-}
-
-func drawPixelWithGlow(screen *ebiten.Image, x, y int, pixelSize int) {
-	centerX := float64(x * pixelSize + pixelSize/2)
-	centerY := float64(y * pixelSize + pixelSize/2)
-	
-	for dy := -pixelSize/2 - 2; dy <= pixelSize/2 + 2; dy++ {
-		for dx := -pixelSize/2 - 2; dx <= pixelSize/2 + 2; dx++ {
-			distance := math.Sqrt(float64(dx*dx + dy*dy))
-			
-			var alpha float64
-			if distance <= float64(pixelSize/2) {
-				alpha = 1.0
-			} else {
-				alpha = math.Max(0, 1.0 - (distance - float64(pixelSize/2)) / 2.0)
-			}
-			
-			if alpha > 0 {
-				intensity := uint8(255 * alpha)
-				glowColor := color.RGBA{0, 255, 100, intensity}
-				px := int(centerX) + dx
-				py := int(centerY) + dy
-				if px >= 0 && py >= 0 && px < 1200 && py < 700 {
-					screen.Set(px, py, glowColor)
-				}
-			}
-		}
-	}
-}
-
-func drawKeyboard(screen *ebiten.Image) {
-	startX := 680
-	startY := 380
-	keySize := 45
-	keySpacing := 55
-	
-	bgColor := color.RGBA{20, 25, 35, 240}
-	drawRoundedRect(screen, float64(startX-15), float64(startY-50), 250, 290, 12, bgColor)
-	
-	ebitenutil.DebugPrintAt(screen, "CHIP-8 KEYPAD", startX+45, startY-35)
-	
-	for row := 0; row < 4; row++ {
-		for col := 0; col < 4; col++ {
-			x := startX + col*keySpacing
-			y := startY + row*keySpacing
-			
-			chip8Key := KeyPad[row][col]
-			keyboardKey := KeyPad_KeyBoard[row][col]
-			
-			var keyPressed bool
-			if keyboardKey == "1" { keyPressed = ebiten.IsKeyPressed(ebiten.Key1) }
-			if keyboardKey == "2" { keyPressed = ebiten.IsKeyPressed(ebiten.Key2) }
-			if keyboardKey == "3" { keyPressed = ebiten.IsKeyPressed(ebiten.Key3) }
-			if keyboardKey == "4" { keyPressed = ebiten.IsKeyPressed(ebiten.Key4) }
-			if keyboardKey == "Q" { keyPressed = ebiten.IsKeyPressed(ebiten.KeyQ) }
-			if keyboardKey == "W" { keyPressed = ebiten.IsKeyPressed(ebiten.KeyW) }
-			if keyboardKey == "E" { keyPressed = ebiten.IsKeyPressed(ebiten.KeyE) }
-			if keyboardKey == "R" { keyPressed = ebiten.IsKeyPressed(ebiten.KeyR) }
-			if keyboardKey == "A" { keyPressed = ebiten.IsKeyPressed(ebiten.KeyA) }
-			if keyboardKey == "S" { keyPressed = ebiten.IsKeyPressed(ebiten.KeyS) }
-			if keyboardKey == "D" { keyPressed = ebiten.IsKeyPressed(ebiten.KeyD) }
-			if keyboardKey == "F" { keyPressed = ebiten.IsKeyPressed(ebiten.KeyF) }
-			if keyboardKey == "Z" { keyPressed = ebiten.IsKeyPressed(ebiten.KeyZ) }
-			if keyboardKey == "X" { keyPressed = ebiten.IsKeyPressed(ebiten.KeyX) }
-			if keyboardKey == "C" { keyPressed = ebiten.IsKeyPressed(ebiten.KeyC) }
-			if keyboardKey == "V" { keyPressed = ebiten.IsKeyPressed(ebiten.KeyV) }
-			
-			var topColor, bottomColor color.RGBA
-			if keyPressed {
-				topColor = color.RGBA{100, 255, 150, 255}
-				bottomColor = color.RGBA{50, 200, 100, 255}
-			} else {
-				topColor = color.RGBA{80, 90, 110, 255}
-				bottomColor = color.RGBA{40, 50, 70, 255}
-			}
-			
-			drawRoundedRect(screen, float64(x), float64(y), float64(keySize), float64(keySize), 6, bottomColor)
-			drawGradientRect(screen, float64(x+2), float64(y+2), float64(keySize-4), float64(keySize-4), topColor, bottomColor)
-			
-			ebitenutil.DebugPrintAt(screen, chip8Key, x+18, y+8)
-			ebitenutil.DebugPrintAt(screen, keyboardKey, x+18, y+25)
-		}
-	}
-}
-
 func(g *Game) Draw(screen *ebiten.Image){
-	bgGradientTop := color.RGBA{10, 15, 25, 255}
-	bgGradientBottom := color.RGBA{25, 35, 50, 255}
-	drawGradientRect(screen, 0, 0, 1200, 700, bgGradientTop, bgGradientBottom)
-	
-	displayX := 50
-	displayY := 50
-	pixelSize := 12
-	borderSize := 8
-	
-	displayBg := color.RGBA{5, 10, 15, 255}
-	drawRoundedRect(screen, float64(displayX-borderSize), float64(displayY-borderSize), 
-		float64(64*pixelSize+2*borderSize), float64(32*pixelSize+2*borderSize), 15, displayBg)
-	
-	screenBg := color.RGBA{0, 8, 0, 255}
-	drawRoundedRect(screen, float64(displayX), float64(displayY), 
-		float64(64*pixelSize), float64(32*pixelSize), 8, screenBg)
+	screen.Fill(color.RGBA{0, 0, 0, 255})
 	
 	for x := 0; x < 64; x++ {
 		for y := 0; y < 32; y++ {
 			if display_grid[x][y] {
-				drawPixelWithGlow(screen, x, y, pixelSize)
+				rect := image.Rect(x*8, y*8, (x+1)*8, (y+1)*8)
+				ebitenutil.DrawRect(screen, float64(rect.Min.X), float64(rect.Min.Y), 
+					float64(rect.Dx()), float64(rect.Dy()), color.RGBA{255, 255, 255, 255})
 			}
 		}
 	}
 	
-	infoBg := color.RGBA{15, 20, 30, 220}
-	drawRoundedRect(screen, 50, 450, 300, 120, 10, infoBg)
+	// Debug info
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("PC: 0x%03X I: 0x%03X", g.memory.PC, g.memory.I))
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("V0: 0x%02X V1: 0x%02X V2: 0x%02X V3: 0x%02X", 
+		g.memory.V[0], g.memory.V[1], g.memory.V[2], g.memory.V[3]), 10, 30)
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("DT: %d ST: %d", delayTimer, soundTimer), 10, 50)
 	
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("PC: 0x%03X", g.memory.PC), 65, 470)
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("I:  0x%03X", g.memory.I), 65, 490)
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("V0-V3: %02X %02X %02X %02X", 
-		g.memory.V[0], g.memory.V[1], g.memory.V[2], g.memory.V[3]), 65, 510)
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("V4-V7: %02X %02X %02X %02X", 
-		g.memory.V[4], g.memory.V[5], g.memory.V[6], g.memory.V[7]), 65, 530)
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("DT: %d  ST: %d", delayTimer, soundTimer), 65, 550)
-	
-	drawKeyboard(screen)
+	// Simple key mapping reference
+	ebitenutil.DebugPrintAt(screen, "Keys: 1234 QWER ASDF ZXCV -> 123C 456D 789E A0BF", 10, 290)
 }
 
 func(g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int){
-	return 1200, 700
+	return 960, 540
 }
 
 type Game struct {
@@ -581,3 +430,4 @@ func(g *Game) Update() error {
 	execute(opcode, g.memory, g.stack)
 	return nil
 }
+
