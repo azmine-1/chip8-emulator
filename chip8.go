@@ -12,22 +12,22 @@ import (
 	"math/rand"
 )
 
-var Font_data = []byte{0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
-	0x20, 0x60, 0x20, 0x20, 0x70, // 1
-	0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
-	0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
-	0x90, 0x90, 0xF0, 0x10, 0x10, // 4
-	0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
-	0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
-	0xF0, 0x10, 0x20, 0x40, 0x40, // 7
-	0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
-	0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
-	0xF0, 0x90, 0xF0, 0x90, 0x90, // A
-	0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
-	0xF0, 0x80, 0x80, 0x80, 0xF0, // C
-	0xE0, 0x90, 0x90, 0x90, 0xE0, // D
-	0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
-	0xF0, 0x80, 0xF0, 0x80, 0x80} // F
+var Font_data = []byte{0xF0, 0x90, 0x90, 0x90, 0xF0,
+	0x20, 0x60, 0x20, 0x20, 0x70,
+	0xF0, 0x10, 0xF0, 0x80, 0xF0,
+	0xF0, 0x10, 0xF0, 0x10, 0xF0,
+	0x90, 0x90, 0xF0, 0x10, 0x10,
+	0xF0, 0x80, 0xF0, 0x10, 0xF0,
+	0xF0, 0x80, 0xF0, 0x90, 0xF0,
+	0xF0, 0x10, 0x20, 0x40, 0x40,
+	0xF0, 0x90, 0xF0, 0x90, 0xF0,
+	0xF0, 0x90, 0xF0, 0x10, 0xF0,
+	0xF0, 0x90, 0xF0, 0x90, 0x90,
+	0xE0, 0x90, 0xE0, 0x90, 0xE0,
+	0xF0, 0x80, 0x80, 0x80, 0xF0,
+	0xE0, 0x90, 0x90, 0x90, 0xE0,
+	0xF0, 0x80, 0xF0, 0x80, 0xF0,
+	0xF0, 0x80, 0xF0, 0x80, 0x80}
 
 var display_grid [64][32]bool
 
@@ -178,8 +178,8 @@ func decode(opcode uint16, m *Memory, s *Stack) {
 		kk := byte(opcode&0x00FF)
 		m.V[x] = byte(rand.Intn(256)) & kk
 	
-	case opcode&0xF000 == 0xE09E:
-		x := (opcode&0xF000) >> 8
+	case opcode&0xF0FF == 0xE09E:
+		x := (opcode&0x0F00) >> 8
 		key := m.V[x]
 		if isKeyPressed(key){
 			m.PC += 2
@@ -205,7 +205,7 @@ func decode(opcode uint16, m *Memory, s *Stack) {
 		x := (opcode & 0x0F00) >> 8
 		delayTimer = m.V[x]
 	case opcode&0xF0FF == 0xF018:
-		x := (opcode&0xF00) >> 8
+		x := (opcode&0x0F00) >> 8
 		soundTimer = m.V[x]
 	case opcode&0xF0FF == 0xF01E:
 		x := (opcode&0x0F00) >> 8
@@ -252,13 +252,6 @@ var KeyPad_KeyBoard = [4][4]string{
 	{"Z", "X", "C", "V"},
 }
 
-
-var KeyMap = map[string]byte{
-	"1": 0x1, "2": 0x2, "3": 0x3, "C": 0xC,
-	"4": 0x4, "5": 0x5, "6": 0x6, "D": 0xD,
-	"7": 0x7, "8": 0x8, "9": 0x9, "E": 0xE,
-	"A": 0xA, "0": 0x0, "B": 0xB, "F": 0xF,
-}
 var KeyMap_KeyBoard = map[string]byte{
 	"1": 0x1, "2": 0x2, "3": 0x3, "4": 0xC,
 	"Q": 0x4, "W": 0x5, "E": 0x6, "R": 0xD,
@@ -266,33 +259,39 @@ var KeyMap_KeyBoard = map[string]byte{
 	"Z": 0xA, "X": 0x0, "C": 0xB, "V": 0xF,
 }
 
+var ReverseKeyMap = map[byte]string{
+	0x1: "1", 0x2: "2", 0x3: "3", 0xC: "4",
+	0x4: "Q", 0x5: "W", 0x6: "E", 0xD: "R",
+	0x7: "A", 0x8: "S", 0x9: "D", 0xE: "F",
+	0xA: "Z", 0x0: "X", 0xB: "C", 0xF: "V",
+}
 
 func isKeyPressed(chip8Key byte) bool {
-    for keyboardKey, mappedKey := range KeyMap_KeyBoard {
-        if mappedKey == chip8Key {
-            switch keyboardKey {
-            case "1": return ebiten.IsKeyPressed(ebiten.Key1)
-            case "2": return ebiten.IsKeyPressed(ebiten.Key2)
-            case "3": return ebiten.IsKeyPressed(ebiten.Key3)
-            case "4": return ebiten.IsKeyPressed(ebiten.Key4)
-            case "Q": return ebiten.IsKeyPressed(ebiten.KeyQ)
-            case "W": return ebiten.IsKeyPressed(ebiten.KeyW)
-            case "E": return ebiten.IsKeyPressed(ebiten.KeyE)
-            case "R": return ebiten.IsKeyPressed(ebiten.KeyR)
-            case "A": return ebiten.IsKeyPressed(ebiten.KeyA)
-            case "S": return ebiten.IsKeyPressed(ebiten.KeyS)
-            case "D": return ebiten.IsKeyPressed(ebiten.KeyD)
-            case "F": return ebiten.IsKeyPressed(ebiten.KeyF)
-            case "Z": return ebiten.IsKeyPressed(ebiten.KeyZ)
-            case "X": return ebiten.IsKeyPressed(ebiten.KeyX)
-            case "C": return ebiten.IsKeyPressed(ebiten.KeyC)
-            case "V": return ebiten.IsKeyPressed(ebiten.KeyV)
-            }
-        }
+    keyboardKey, exists := ReverseKeyMap[chip8Key]
+    if !exists {
+        return false
+    }
+    
+    switch keyboardKey {
+    case "1": return ebiten.IsKeyPressed(ebiten.Key1)
+    case "2": return ebiten.IsKeyPressed(ebiten.Key2)
+    case "3": return ebiten.IsKeyPressed(ebiten.Key3)
+    case "4": return ebiten.IsKeyPressed(ebiten.Key4)
+    case "Q": return ebiten.IsKeyPressed(ebiten.KeyQ)
+    case "W": return ebiten.IsKeyPressed(ebiten.KeyW)
+    case "E": return ebiten.IsKeyPressed(ebiten.KeyE)
+    case "R": return ebiten.IsKeyPressed(ebiten.KeyR)
+    case "A": return ebiten.IsKeyPressed(ebiten.KeyA)
+    case "S": return ebiten.IsKeyPressed(ebiten.KeyS)
+    case "D": return ebiten.IsKeyPressed(ebiten.KeyD)
+    case "F": return ebiten.IsKeyPressed(ebiten.KeyF)
+    case "Z": return ebiten.IsKeyPressed(ebiten.KeyZ)
+    case "X": return ebiten.IsKeyPressed(ebiten.KeyX)
+    case "C": return ebiten.IsKeyPressed(ebiten.KeyC)
+    case "V": return ebiten.IsKeyPressed(ebiten.KeyV)
     }
     return false
 }
-
 
 func getKeyPressed() byte {
     keyboardKeys := []struct{
@@ -348,45 +347,35 @@ func start_timers() {
 }
 
 func loadTestProgram(m *Memory){
-	// Instructions - Display centered, larger IBM logo
 	testInstructions := []byte{
-		0x00, 0xE0,       // CLS
-		0x60, 0x10,       // LD V0, 16 (x position - more centered)
-		0x61, 0x0C,       // LD V1, 12 (y position - more centered)
-		0xA2, 0x2A,       // LD I, 0x22A (point to "I" sprite)
-		0xD0, 0x18,       // DRW V0, V1, 8 (draw 8-byte tall sprite)
-		0x70, 0x0A,       // ADD V0, 10 (move x by 10 pixels for spacing)
-		0xA2, 0x32,       // LD I, 0x232 (point to "B" sprite)
-		0xD0, 0x18,       // DRW V0, V1, 8 (draw 8-byte tall sprite)
-		0x70, 0x0A,       // ADD V0, 10 (move x by 10 pixels for spacing)
-		0xA2, 0x3A,       // LD I, 0x23A (point to "M" sprite)
-		0xD0, 0x18,       // DRW V0, V1, 8 (draw 8-byte tall sprite)
-		0x12, 0x1C,       // JP 0x21C (infinite loop to halt)
+		0x00, 0xE0,
+		0x60, 0x10,
+		0x61, 0x0C,
+		0xA2, 0x2A,
+		0xD0, 0x18,
+		0x70, 0x0A,
+		0xA2, 0x32,
+		0xD0, 0x18,
+		0x70, 0x0A,
+		0xA2, 0x3A,
+		0xD0, 0x18,
+		0x12, 0x1C,
 	}
 
-	// Load program into memory starting at 0x200
 	for i, instruction := range testInstructions {
 		m.memory[0x200+i] = instruction
 	}
 
-	// Larger sprite data for "IBM" - 8 bytes each for better visibility
 	ibmSprites := []byte{
-		// "I" sprite (8 bytes tall)
 		0xFF, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0xFF,
-		
-		// "B" sprite (8 bytes tall)
 		0xFE, 0x33, 0x33, 0xFE, 0x33, 0x33, 0x33, 0xFE,
-		
-		// "M" sprite (8 bytes tall)
 		0x83, 0xC7, 0xEF, 0xDB, 0x83, 0x83, 0x83, 0x83,
 	}
 
-	// Load sprites into memory starting at 0x22A
 	for i, spriteByte := range ibmSprites {
 		m.memory[0x22A+i] = spriteByte
 	}
 }
-
 
 func loadROM(m *Memory, filename string) error {
 	data, err := os.ReadFile(filename)
@@ -394,7 +383,6 @@ func loadROM(m *Memory, filename string) error {
 		return fmt.Errorf("failed to read ROM file: %v", err)
 	}
 	
-	// Load ROM data starting at 0x20
 	for i, byte := range data {
 		if 0x200+i >= 4096 {
 			break 
@@ -403,6 +391,90 @@ func loadROM(m *Memory, filename string) error {
 	}
 	
 	return nil
+}
+
+func drawKeyboard(screen *ebiten.Image) {
+	startX := 650
+	startY := 350
+	keySize := 40
+	keySpacing := 50
+	
+	ebitenutil.DebugPrintAt(screen, "CHIP-8 Keypad Layout:", startX, startY-30)
+	
+	for row := 0; row < 4; row++ {
+		for col := 0; col < 4; col++ {
+			x := startX + col*keySpacing
+			y := startY + row*keySpacing
+			
+			chip8Key := KeyPad[row][col]
+			keyboardKey := KeyPad_KeyBoard[row][col]
+			
+			var keyPressed bool
+			if keyboardKey == "1" { keyPressed = ebiten.IsKeyPressed(ebiten.Key1) }
+			if keyboardKey == "2" { keyPressed = ebiten.IsKeyPressed(ebiten.Key2) }
+			if keyboardKey == "3" { keyPressed = ebiten.IsKeyPressed(ebiten.Key3) }
+			if keyboardKey == "4" { keyPressed = ebiten.IsKeyPressed(ebiten.Key4) }
+			if keyboardKey == "Q" { keyPressed = ebiten.IsKeyPressed(ebiten.KeyQ) }
+			if keyboardKey == "W" { keyPressed = ebiten.IsKeyPressed(ebiten.KeyW) }
+			if keyboardKey == "E" { keyPressed = ebiten.IsKeyPressed(ebiten.KeyE) }
+			if keyboardKey == "R" { keyPressed = ebiten.IsKeyPressed(ebiten.KeyR) }
+			if keyboardKey == "A" { keyPressed = ebiten.IsKeyPressed(ebiten.KeyA) }
+			if keyboardKey == "S" { keyPressed = ebiten.IsKeyPressed(ebiten.KeyS) }
+			if keyboardKey == "D" { keyPressed = ebiten.IsKeyPressed(ebiten.KeyD) }
+			if keyboardKey == "F" { keyPressed = ebiten.IsKeyPressed(ebiten.KeyF) }
+			if keyboardKey == "Z" { keyPressed = ebiten.IsKeyPressed(ebiten.KeyZ) }
+			if keyboardKey == "X" { keyPressed = ebiten.IsKeyPressed(ebiten.KeyX) }
+			if keyboardKey == "C" { keyPressed = ebiten.IsKeyPressed(ebiten.KeyC) }
+			if keyboardKey == "V" { keyPressed = ebiten.IsKeyPressed(ebiten.KeyV) }
+			
+			var keyColor color.RGBA
+			if keyPressed {
+				keyColor = color.RGBA{100, 200, 100, 255}
+			} else {
+				keyColor = color.RGBA{60, 60, 60, 255}
+			}
+			
+			ebitenutil.DrawRect(screen, float64(x), float64(y), float64(keySize), float64(keySize), keyColor)
+			
+			ebitenutil.DrawRect(screen, float64(x), float64(y), float64(keySize), 2, color.RGBA{255, 255, 255, 255})
+			ebitenutil.DrawRect(screen, float64(x), float64(y), 2, float64(keySize), color.RGBA{255, 255, 255, 255})
+			ebitenutil.DrawRect(screen, float64(x+keySize-2), float64(y), 2, float64(keySize), color.RGBA{255, 255, 255, 255})
+			ebitenutil.DrawRect(screen, float64(x), float64(y+keySize-2), float64(keySize), 2, color.RGBA{255, 255, 255, 255})
+			
+			ebitenutil.DebugPrintAt(screen, chip8Key, x+15, y+8)
+			
+			ebitenutil.DebugPrintAt(screen, keyboardKey, x+15, y+22)
+		}
+	}
+	
+	ebitenutil.DebugPrintAt(screen, "Top: CHIP-8 Key", startX, startY+220)
+	ebitenutil.DebugPrintAt(screen, "Bottom: Keyboard Key", startX, startY+235)
+	ebitenutil.DebugPrintAt(screen, "Green = Currently Pressed", startX, startY+250)
+}
+
+func(g *Game) Draw(screen *ebiten.Image){
+	screen.Fill(color.RGBA{0, 0, 0, 255})
+	
+	for x := 0; x < 64; x++ {
+		for y := 0; y < 32; y++ {
+			if display_grid[x][y] {
+				rect := image.Rect(x*8, y*8, (x+1)*8, (y+1)*8)
+				ebitenutil.DrawRect(screen, float64(rect.Min.X), float64(rect.Min.Y), 
+					float64(rect.Dx()), float64(rect.Dy()), color.RGBA{255, 255, 255, 255})
+			}
+		}
+	}
+	
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("PC: 0x%03X I: 0x%03X", g.memory.PC, g.memory.I))
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("V0: 0x%02X V1: 0x%02X V2: 0x%02X V3: 0x%02X", 
+		g.memory.V[0], g.memory.V[1], g.memory.V[2], g.memory.V[3]), 10, 30)
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("DT: %d ST: %d", delayTimer, soundTimer), 10, 50)
+	
+	drawKeyboard(screen)
+}
+
+func(g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int){
+	return 960, 540
 }
 
 type Game struct {
@@ -415,36 +487,4 @@ func(g *Game) Update() error {
 	execute(opcode, g.memory, g.stack)
 	return nil
 }
-
-func(g *Game) Draw(screen *ebiten.Image){
-
-	screen.Fill(color.RGBA{0, 0, 0, 255})
-	
-	for x := 0; x < 64; x++ {
-		for y := 0; y < 32; y++ {
-			if display_grid[x][y] {
-				rect := image.Rect(x*15, y*15, (x+1)*15, (y+1)*15)
-				ebitenutil.DrawRect(screen, float64(rect.Min.X), float64(rect.Min.Y), 
-					float64(rect.Dx()), float64(rect.Dy()), color.RGBA{255, 255, 255, 255})
-			}
-		}
-	}
-	
-	
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("PC: 0x%03X I: 0x%03X V0: 0x%02X V1: 0x%02X", 
-		g.memory.PC, g.memory.I, g.memory.V[0], g.memory.V[1]))
-	
-
-	controls := "Controls: 1 2 3 4 | Q W E R | A S D F | Z X C V"
-	ebitenutil.DebugPrintAt(screen, controls, 10, 500)
-	
-	
-	keyMapping := "CHIP-8: 1 2 3 C | 4 5 6 D | 7 8 9 E | A 0 B F"
-	ebitenutil.DebugPrintAt(screen, keyMapping, 10, 520)
-}
-
-func(g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int){
-	return 960, 540
-}
-
 
