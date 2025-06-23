@@ -431,6 +431,19 @@ func drawRoundedRect(screen *ebiten.Image, x, y, width, height, radius float64, 
 	}
 }
 
+func drawGradientRect(screen *ebiten.Image, x, y, width, height float64, topColor, bottomColor color.RGBA) {
+	for py := y; py < y+height; py++ {
+		t := (py - y) / height
+		r := float64(topColor.R)*(1-t) + float64(bottomColor.R)*t
+		g := float64(topColor.G)*(1-t) + float64(bottomColor.G)*t
+		b := float64(topColor.B)*(1-t) + float64(bottomColor.B)*t
+		a := float64(topColor.A)*(1-t) + float64(bottomColor.A)*t
+		
+		lineColor := color.RGBA{uint8(r), uint8(g), uint8(b), uint8(a)}
+		ebitenutil.DrawRect(screen, x, py, width, 1, lineColor)
+	}
+}
+
 func drawKeyboard(screen *ebiten.Image) {
 	startX := 650
 	startY := 350
