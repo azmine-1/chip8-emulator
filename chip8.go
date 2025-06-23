@@ -444,6 +444,35 @@ func drawGradientRect(screen *ebiten.Image, x, y, width, height float64, topColo
 	}
 }
 
+func drawPixelWithGlow(screen *ebiten.Image, x, y int, pixelSize int) {
+	centerX := float64(x * pixelSize + pixelSize/2)
+	centerY := float64(y * pixelSize + pixelSize/2)
+	
+	for dy := -pixelSize/2 - 2; dy <= pixelSize/2 + 2; dy++ {
+		for dx := -pixelSize/2 - 2; dx <= pixelSize/2 + 2; dx++ {
+			distance := math.Sqrt(float64(dx*dx + dy*dy))
+			maxDistance := float64(pixelSize/2 + 2)
+			
+			var alpha float64
+			if distance <= float64(pixelSize/2) {
+				alpha = 1.0
+			} else {
+				alpha = math.Max(0, 1.0 - (distance - float64(pixelSize/2)) / 2.0)
+			}
+			
+			if alpha > 0 {
+				intensity := uint8(255 * alpha)
+				glowColor := color.RGBA{0, 255, 100, intensity}
+				px := int(centerX) + dx
+				py := int(centerY) + dy
+				if px >= 0 && py >= 0 && px < 1200 && py < 700 {
+					screen.Set(px, py, glowColor)
+				}
+			}
+		}
+	}
+}
+
 func drawKeyboard(screen *ebiten.Image) {
 	startX := 650
 	startY := 350
