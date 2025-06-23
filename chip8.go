@@ -408,16 +408,11 @@ func loadROM(m *Memory, filename string) error {
 type Game struct {
 	memory *Memory
 	stack  *Stack
-	instructionCounter int 
 }
 
 func(g *Game) Update() error {
-	g.instructionCounter++
-	if g.instructionCounter >= 4 {
-		g.instructionCounter = 0
-		opcode := fetch(g.memory)
-		execute(opcode, g.memory, g.stack)
-	}
+	opcode := fetch(g.memory)
+	execute(opcode, g.memory, g.stack)
 	return nil
 }
 
@@ -428,7 +423,7 @@ func(g *Game) Draw(screen *ebiten.Image){
 	for x := 0; x < 64; x++ {
 		for y := 0; y < 32; y++ {
 			if display_grid[x][y] {
-				rect := image.Rect(x*10, y*10, (x+1)*10, (y+1)*10)
+				rect := image.Rect(x*15, y*15, (x+1)*15, (y+1)*15)
 				ebitenutil.DrawRect(screen, float64(rect.Min.X), float64(rect.Min.Y), 
 					float64(rect.Dx()), float64(rect.Dy()), color.RGBA{255, 255, 255, 255})
 			}
@@ -438,10 +433,18 @@ func(g *Game) Draw(screen *ebiten.Image){
 	
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("PC: 0x%03X I: 0x%03X V0: 0x%02X V1: 0x%02X", 
 		g.memory.PC, g.memory.I, g.memory.V[0], g.memory.V[1]))
+	
+
+	controls := "Controls: 1 2 3 4 | Q W E R | A S D F | Z X C V"
+	ebitenutil.DebugPrintAt(screen, controls, 10, 500)
+	
+	
+	keyMapping := "CHIP-8: 1 2 3 C | 4 5 6 D | 7 8 9 E | A 0 B F"
+	ebitenutil.DebugPrintAt(screen, keyMapping, 10, 520)
 }
 
 func(g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int){
-	return 640, 320
+	return 960, 540
 }
 
 
