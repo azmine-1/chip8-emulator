@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"time"
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
@@ -21,10 +22,7 @@ func main() {
 	stack := &Stack{
 		data: make([]uint16, 0, 16),
 	}
-	
-	// Load program based on command line arguments
 	if len(os.Args) > 1 {
-		// Load ROM file if provided
 		romFile := os.Args[1]
 		fmt.Printf("Loading ROM: %s\n", romFile)
 		if err := loadROM(memory, romFile); err != nil {
@@ -33,7 +31,6 @@ func main() {
 			loadTestProgram(memory)
 		}
 	} else {
-		// Load test program by default
 		fmt.Println("No ROM specified, loading test program...")
 		loadTestProgram(memory)
 	}
@@ -46,6 +43,8 @@ func main() {
 	game := &Game{
 		memory: memory,
 		stack:  stack,
+		lastUpdate: time.Now(),
+		instructionsPerFrame: 0,
 	}
 	
 	if err := ebiten.RunGame(game); err != nil {

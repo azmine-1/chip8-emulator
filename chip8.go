@@ -11,7 +11,7 @@ import (
 	"image"
 	"math/rand"
 )
-
+//should probably put in a struct
 var Font_data = []byte{0xF0, 0x90, 0x90, 0x90, 0xF0,
 	0x20, 0x60, 0x20, 0x20, 0x70,
 	0xF0, 0x10, 0xF0, 0x80, 0xF0,
@@ -331,6 +331,7 @@ func(s *Stack) pop() (uint16, error) {
 var delayTimer byte
 var soundTimer byte
 var ticker *time.Ticker
+var targetInstructionsPerSecond = 500 // 500-700 range from manual
 
 func start_timers() {
 	ticker = time.NewTicker(time.Second / 60)
@@ -411,9 +412,11 @@ func(g *Game) Draw(screen *ebiten.Image){
 	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("V0: 0x%02X V1: 0x%02X V2: 0x%02X V3: 0x%02X", 
 		g.memory.V[0], g.memory.V[1], g.memory.V[2], g.memory.V[3]), 10, 30)
 	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("DT: %d ST: %d", delayTimer, soundTimer), 10, 50)
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Target IPS: %d | Current: %d", targetInstructionsPerSecond, g.instructionsPerFrame*60), 10, 70)
 	
 	// Simple key mapping reference
 	ebitenutil.DebugPrintAt(screen, "Keys: 1234 QWER ASDF ZXCV -> 123C 456D 789E A0BF", 10, 290)
+	ebitenutil.DebugPrintAt(screen, "Speed: +/- to adjust emulation speed", 10, 310)
 }
 
 func(g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int){
@@ -423,11 +426,36 @@ func(g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight
 type Game struct {
 	memory *Memory
 	stack  *Stack
+	lastUpdate time.Time
+	instructionsPerFrame int
 }
 
 func(g *Game) Update() error {
-	opcode := fetch(g.memory)
-	execute(opcode, g.memory, g.stack)
+	if inpututil.IsKeyJustPressed(ebiten.KeyEqual) {
+		targetInstructionsPerSecond += 100
+		if targetInstructionsPerSecond > 2000 {
+			targetInstructionsPerSecond = 2000
+		}
+	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyMinus) {
+		targetInstructionsPerSecond -= 100
+		if targetInstructionsPerSecond < 100 {
+			targetInstructionsPerSecond = 100
+		}
+	}
+	now := time.Now()
+	deltaTime := now.Sub(g.lastUpdate)
+	g.lastUpdate = now
+	g.instructionsPerFrame = int(float64(targetInstructionsPerSecond) * deltaTime.Seconds())
+		if g.instructionsPerFrame < 1 {
+		g.instructionsPerFrame = 1
+	}
+
+	for i := 0; i < g.instructionsPerFrame; i++ {
+		opcode := fetch(g.memory)
+		execute(opcode, g.memory, g.stack)
+	}
+	
 	return nil
 }
 
